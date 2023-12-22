@@ -32,11 +32,12 @@
 # include <stdio.h>
 # include <unistd.h>
 # include <stdlib.h>
-
+# define AST_NODE(tag, ...)\
+        new_ast((t_Ast){tag, {.tag=(struct s_##tag){__VA_ARGS__}}})
 typedef struct s_Ast t_Ast;
 typedef enum {
-    OPERATOR,
-    LITERAL
+    Operator,
+    Literal
 } t_tag;
 typedef struct s_Operator t_O;
 struct s_Operator {
@@ -45,7 +46,6 @@ struct s_Operator {
     char    mask;
     void    *(*Resolve) (void *r_d, void *l_d);
     // void    *resolved_data;
-    int     value;
 };
 typedef struct s_Literal t_L;
 struct s_Literal {
@@ -56,11 +56,12 @@ struct s_Literal {
 struct s_Ast {
     t_tag tag;
     union {
-        t_O Operator; 
+        t_O Operator;
         t_L Literal;
         // struct s_Expression {} Espression;
     } u_d;
 };
-
+// 00000000
+//
 t_Ast   *new_ast(t_Ast tree);
 #endif
