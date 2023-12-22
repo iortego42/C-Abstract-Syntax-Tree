@@ -49,8 +49,8 @@ struct s_Operator {
 };
 typedef struct s_Literal t_L;
 struct s_Literal {
-    int     num;
-    // void    *data;
+    // int     num;
+    void    *data;
     // void    (*freezer)(void *);
 };
 struct s_Ast {
