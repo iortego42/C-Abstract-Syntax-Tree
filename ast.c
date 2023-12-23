@@ -1,49 +1,7 @@
 #include "ast.h"
-
-t_Ast   *new_ast_node(t_Ast tree) {
-    t_Ast *root;
-
-    root = malloc(sizeof(t_Ast));
-    if (root)
-        *root = tree;
-    return (root);
-}
-
-bool free_ast_node(t_Ast    **node) {
-    t_Ast   *ptr;
-    if (!node || !*node) return true;
-    ptr = *node;
-    if (ptr->tag == Literal)
-    {
-        ptr->u_d.Literal.freezer(&ptr->u_d.Literal);
-        ptr->u_d.Literal.data = NULL;
-    }
-    else if (ptr->tag == Operator){
-        if (!free_ast_node(&ptr->u_d.Operator.left)) return false;
-        if (!free_ast_node(&ptr->u_d.Operator.right)) return false;
-    }
-    else
-        return false;
-    free(*node);
-    *node = NULL;
-    return true;
-}
-
-int *add(int *a, int *b) {
-
-    int * v = malloc (sizeof(int));
-    *v = *a + *b;
-    return v;
-}
-
-int *mult(int *a, int *b)
-{
-    int * v = malloc (sizeof(int));
-    *v = *a * *b;
-    return v;
-}
-
-/*void    *operate(t_O *this) {
+/*
+OLD OPERATE
+void    *operate(t_O *this) {
     void    *l_v = NULL;
     void    *r_v = NULL;
     void    *data;
@@ -75,6 +33,58 @@ int *mult(int *a, int *b)
     return data;
 }*/
 
+void    *solve_ast(t_Ast    *this) {
+    if (this->tag == Literal)
+        return (this->u_d.Literal.data);
+    else if (this->tag == Operator)
+        return (operate(&this));
+    else
+        return (NULL);
+}
+
+int *new_num(int n){
+    int *num = malloc(sizeof(int));
+    if (num)
+        *num = n;
+    return num;
+}
+
+void free_num(t_L *this) {
+    free(this->data); 
+}
+
+void leaks(){
+    system("leaks test");
+}
+t_Ast   *new_ast_node(t_Ast tree) {
+    t_Ast *root;
+
+    root = malloc(sizeof(t_Ast));
+    if (root)
+        *root = tree;
+    return (root);
+}
+
+bool free_ast_node(t_Ast    **node) {
+    t_Ast   *ptr;
+    if (!node || !*node) return true;
+    ptr = *node;
+    if (ptr->tag == Literal)
+    {
+        ptr->u_d.Literal.freezer(&ptr->u_d.Literal);
+        ptr->u_d.Literal.data = NULL;
+    }
+    else if (ptr->tag == Operator){
+        if (!free_ast_node(&ptr->u_d.Operator.left)) return false;
+        if (!free_ast_node(&ptr->u_d.Operator.right)) return false;
+    }
+    else
+        return false;
+    free(*node);
+    *node = NULL;
+    return true;
+}
+
 void    asign_resolver(t_O *this) {
     if (this->mask == '*')
         this->Resolve = (void *(*)(void *, void *))mult;
@@ -83,6 +93,7 @@ void    asign_resolver(t_O *this) {
     else
         this->Resolve = NULL;
 }
+
 void    *operate(t_Ast  **this) {
     void    *r_v;
     void    *l_v;
@@ -107,30 +118,6 @@ void    *operate(t_Ast  **this) {
         free(r_v);
     if (!free_ast_node(this)) printf("There was an Error\n");
     return (data);
-}
-
-void    *solve_ast(t_Ast    *this) {
-    if (this->tag == Literal)
-        return (this->u_d.Literal.data);
-    else if (this->tag == Operator)
-        return (operate(&this));
-    else
-        return (NULL);
-}
-
-int *new_num(int n){
-    int *num = malloc(sizeof(int));
-    if (num)
-        *num = n;
-    return num;
-}
-
-void free_num(t_L *this) {
-    free(this->data); 
-}
-
-void leaks(){
-    system("leaks test");
 }
 
 int main(void) {

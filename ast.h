@@ -64,5 +64,12 @@ struct s_Ast {
 };
 // 00000000
 //
-t_Ast   *new_ast(t_Ast tree);
+
+t_Ast   *new_ast_node(t_Ast tree);
+bool    free_ast_node(t_Ast    **node);
+void    asign_resolver(t_O *this);
+void    *operate(t_Ast  **this);
+void    *solve_ast(t_Ast    *this);
+int     *mult(int *a, int *b);
+int     *add(int *a, int *b);
 #endif
