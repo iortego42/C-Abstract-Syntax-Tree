@@ -32,8 +32,9 @@
 # include <stdio.h>
 # include <unistd.h>
 # include <stdlib.h>
+# include <stdbool.h>
 # define AST_NODE(tag, ...)\
-        new_ast((t_Ast){tag, {.tag=(struct s_##tag){__VA_ARGS__}}})
+        new_ast_node((t_Ast){tag, {.tag=(struct s_##tag){__VA_ARGS__}}})
 typedef struct s_Ast t_Ast;
 typedef enum {
     Operator,
@@ -51,7 +52,7 @@ typedef struct s_Literal t_L;
 struct s_Literal {
     // int     num;
     void    *data;
-    // void    (*freezer)(void *);
+    void    (*freezer)(t_L *);
 };
 struct s_Ast {
     t_tag tag;
