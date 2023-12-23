@@ -10,8 +10,9 @@ t_Ast   *new_ast_node(t_Ast tree) {
 }
 
 bool free_ast_node(t_Ast    **node) {
-    t_Ast   *ptr = *node;
-    if (!ptr) return true;
+    t_Ast   *ptr;
+    if (!node || !*node) return true;
+    ptr = *node;
     if (ptr->tag == Literal)
     {
         ptr->u_d.Literal.freezer(&ptr->u_d.Literal);
@@ -42,7 +43,7 @@ int *mult(int *a, int *b)
     return v;
 }
 
-void    *operate(t_O *this) {
+/*void    *operate(t_O *this) {
     void    *l_v = NULL;
     void    *r_v = NULL;
     void    *data;
@@ -72,6 +73,49 @@ void    *operate(t_O *this) {
     if (!this->left) free(l_v);
     if (!this->right) free(r_v);
     return data;
+}*/
+
+void    asign_resolver(t_O *this) {
+    if (this->mask == '*')
+        this->Resolve = (void *(*)(void *, void *))mult;
+    else if (this->mask == '+')
+        this->Resolve = (void *(*)(void *, void *))add;
+    else
+        this->Resolve = NULL;
+}
+void    *operate(t_Ast  **this) {
+    void    *r_v;
+    void    *l_v;
+    void    *data;
+
+    if (this[0]->tag != Operator)
+        return NULL; 
+    if (this[0]->u_d.Operator.Resolve == NULL)
+        asign_resolver(&this[0]->u_d.Operator);
+    if (this[0]->u_d.Operator.left->tag == Literal)
+        l_v = this[0]->u_d.Operator.left->u_d.Literal.data;
+    else 
+        l_v = operate(&this[0]->u_d.Operator.left);
+    if (this[0]->u_d.Operator.right->tag == Literal)
+        r_v = this[0]->u_d.Operator.right->u_d.Literal.data;
+    else 
+        r_v = operate(&this[0]->u_d.Operator.right);
+    data = this[0]->u_d.Operator.Resolve(l_v, r_v);
+    if (!this[0]->u_d.Operator.left)
+        free(l_v);
+    if (!this[0]->u_d.Operator.right)
+        free(r_v);
+    if (!free_ast_node(this)) printf("There was an Error\n");
+    return (data);
+}
+
+void    *solve_ast(t_Ast    *this) {
+    if (this->tag == Literal)
+        return (this->u_d.Literal.data);
+    else if (this->tag == Operator)
+        return (operate(&this));
+    else
+        return (NULL);
 }
 
 int *new_num(int n){
@@ -103,14 +147,13 @@ int main(void) {
                             NULL),
                         '+', 
                         NULL);
-    void *patata = operate(&tree_two->u_d.Operator);
-    int *a = (int *)patata;
 
-    printf("Value: %d", *a);
-    printf("Cleaning");
-    free_ast_node(&tree_two);
+    int *a = (int *)solve_ast(tree_two);
+
+    printf("Value: %d\n", *a);
+    printf("Cleaning\n");
     free(a); 
-    // free(tree_two);
+    free_ast_node(&tree_two);
     atexit(leaks);
     return (0);
 }

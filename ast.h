@@ -45,7 +45,7 @@ struct s_Operator {
     t_Ast   *left;
     t_Ast   *right;
     char    mask;
-    void    *(*Resolve) (void *r_d, void *l_d);
+    void    *(*Resolve) (void *l_d, void *r_d);
     // void    *resolved_data;
 };
 typedef struct s_Literal t_L;
