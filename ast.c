@@ -54,7 +54,7 @@ void free_num(t_L *this) {
 }
 
 void leaks(){
-    system("leaks test");
+    system("leaks -q test");
 }
 t_Ast   *new_ast_node(t_Ast tree) {
     t_Ast *root;
@@ -67,7 +67,8 @@ t_Ast   *new_ast_node(t_Ast tree) {
 
 bool free_ast_node(t_Ast    **node) {
     t_Ast   *ptr;
-    if (!node || !*node) return true;
+    if (!node || !*node)
+        return true;
     ptr = *node;
     if (ptr->tag == Literal)
     {
@@ -75,8 +76,9 @@ bool free_ast_node(t_Ast    **node) {
         ptr->u_d.Literal.data = NULL;
     }
     else if (ptr->tag == Operator){
-        if (!free_ast_node(&ptr->u_d.Operator.left)) return false;
-        if (!free_ast_node(&ptr->u_d.Operator.right)) return false;
+        if (!free_ast_node(&ptr->u_d.Operator.left)
+            || !free_ast_node(&ptr->u_d.Operator.right))
+            return false;
     }
     else
         return false;
@@ -85,14 +87,17 @@ bool free_ast_node(t_Ast    **node) {
     return true;
 }
 
-void    asign_resolver(t_O *this) {
-    if (this->mask == '*')
-        this->Resolve = (void *(*)(void *, void *))mult;
-    else if (this->mask == '+')
-        this->Resolve = (void *(*)(void *, void *))add;
+t_operators    asign_resolver(char mask) {
+    t_operators var;
+    if (mask == '+')
+        var = ADD;
+    else if (mask == '*')
+        var = MULT;
     else
-        this->Resolve = NULL;
+        var = NONE;
+    return var;
 }
+
 
 void    *operate(t_Ast  **this) {
     void    *r_v;
@@ -102,7 +107,8 @@ void    *operate(t_Ast  **this) {
     if (this[0]->tag != Operator)
         return NULL; 
     if (this[0]->u_d.Operator.Resolve == NULL)
-        asign_resolver(&this[0]->u_d.Operator);
+        GET_RESOLVER(this[0]->u_d.Operator);
+        // asign_resolver(this[0]->u_d.Operator.mask);
     if (this[0]->u_d.Operator.left->tag == Literal)
         l_v = this[0]->u_d.Operator.left->u_d.Literal.data;
     else 
@@ -129,7 +135,15 @@ int main(void) {
                                 AST_NODE(Literal, new_num(3), free_num),
                                 '*',
                                 NULL),
-                            AST_NODE(Literal, new_num(4), free_num),
+                                AST_NODE(Operator,
+                                AST_NODE(Operator, 
+                                    AST_NODE(Literal, new_num(2), free_num),
+                                    AST_NODE(Literal, new_num(3), free_num),
+                                    '*',
+                                    NULL),
+                                AST_NODE(Literal, new_num(4), free_num),
+                                '+',
+                                NULL),
                             '+',
                             NULL),
                         '+', 

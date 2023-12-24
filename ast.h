@@ -34,7 +34,10 @@
 # include <stdlib.h>
 # include <stdbool.h>
 # define AST_NODE(tag, ...)\
-        new_ast_node((t_Ast){tag, {.tag=(struct s_##tag){__VA_ARGS__}}})
+        new_ast_node((t_Ast){tag, {.tag=(struct s_ ## tag){__VA_ARGS__}}})
+# define F_CAST (void *(*)(void *, void *))
+# define GET_RESOLVER(op)\
+        op.Resolve = g_resolver[asign_resolver(op.mask)]
 typedef struct s_Ast t_Ast;
 typedef enum {
     Operator,
@@ -62,14 +65,28 @@ struct s_Ast {
         // struct s_Expression {} Espression;
     } u_d;
 };
-// 00000000
-//
 
-t_Ast   *new_ast_node(t_Ast tree);
-bool    free_ast_node(t_Ast    **node);
-void    asign_resolver(t_O *this);
-void    *operate(t_Ast  **this);
-void    *solve_ast(t_Ast    *this);
-int     *mult(int *a, int *b);
-int     *add(int *a, int *b);
+typedef enum {
+    NONE,
+    ADD,
+    MULT,
+    OPS_NUM
+} t_operators;
+  
+
+
+
+t_Ast           *new_ast_node(t_Ast tree);
+bool            free_ast_node(t_Ast    **node);
+t_operators     asign_resolver(char mask);
+void            *operate(t_Ast  **this);
+void            *solve_ast(t_Ast    *this);
+int             *mult(int *a, int *b);
+int             *add(int *a, int *b);
+static void *(*g_resolver[OPS_NUM])(void *, void *) = {
+   [ADD] = F_CAST add,
+   [MULT] = F_CAST mult,
+   [NONE] = NULL
+   };
+
 #endif
