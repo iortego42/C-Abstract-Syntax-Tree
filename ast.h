@@ -29,25 +29,39 @@
 |
 */
 
-# include <stdio.h>
 # include <unistd.h>
 # include <stdlib.h>
 # include <stdbool.h>
+# include <string.h>
+# include <stdio.h>
 # define AST_NODE(tag, ...)\
         new_ast_node((t_Ast){tag, {.tag=(struct s_ ## tag){__VA_ARGS__}}})
+# define AST_SWITCH(tag, ...)\
+        (t_Ast){tag, {.tag=(struct s_ ## tag){__VA_ARGS__}}}
 # define F_CAST (void *(*)(void *, void *))
 # define GET_RESOLVER(op)\
-        op.Resolve = g_resolver[asign_resolver(op.mask)]
+        op.Resolve = g_resolver[op.mask]
+# define CONSTRUCTOR() constructor(this)
 typedef struct s_Ast t_Ast;
 typedef enum {
     Operator,
-    Literal
+    Literal,
+    Expression
 } t_tag;
+typedef enum {
+    NONE,
+    ADD,
+    MULT,
+    DIV,
+    SUBS,
+    OPS_NUM
+} t_operators;
 typedef struct s_Operator t_O;
 struct s_Operator {
     t_Ast   *left;
     t_Ast   *right;
-    char    mask;
+    t_operators    mask;
+    int     pos;
     void    *(*Resolve) (void *l_d, void *r_d);
     // void    *resolved_data;
 };
@@ -57,35 +71,53 @@ struct s_Literal {
     void    *data;
     void    (*freezer)(t_L *);
 };
+typedef struct s_Expression t_E;
+struct s_Expression {
+    int     start;
+    int     end;
+};
 struct s_Ast {
     t_tag tag;
     union {
         t_O Operator;
         t_L Literal;
-        // struct s_Expression {} Espression;
+        t_E Expression;
     } u_d;
 };
 
-typedef enum {
-    NONE,
-    ADD,
-    MULT,
-    OPS_NUM
-} t_operators;
-  
+typedef struct s_sym {
+    t_operators mask;
+    int         priority;
+    int         pos;
+    bool        done;
+} t_sym;
 
 
+typedef struct s_data {
+    t_Ast   *tree;
+    char    *cmd;
+    t_sym   *sym;
+} t_data;
+t_data Data;
 
+
+void    constructor(t_Ast   *this);
+void    to_operator(t_Ast   *this, t_sym    op);
+void    to_literal(t_Ast    *this);
 t_Ast           *new_ast_node(t_Ast tree);
 bool            free_ast_node(t_Ast    **node);
-t_operators     asign_resolver(char mask);
+t_operators     asign_op(char mask);
 void            *operate(t_Ast  **this);
 void            *solve_ast(t_Ast    *this);
 int             *mult(int *a, int *b);
 int             *add(int *a, int *b);
+int             *divis(int *a, int *b);
+int             *subs(int *a, int *b);
 static void *(*g_resolver[OPS_NUM])(void *, void *) = {
    [ADD] = F_CAST add,
    [MULT] = F_CAST mult,
+   [SUBS] = F_CAST subs,
+   [DIV] = F_CAST divis,
    [NONE] = NULL
    };
 

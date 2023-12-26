@@ -60,8 +60,11 @@ t_Ast   *new_ast_node(t_Ast tree) {
     t_Ast *root;
 
     root = malloc(sizeof(t_Ast));
-    if (root)
-        *root = tree;
+    if (!root)
+        return (NULL);
+    *root = tree;
+    if (root->tag == Expression)
+        constructor(root);
     return (root);
 }
 
@@ -80,6 +83,8 @@ bool free_ast_node(t_Ast    **node) {
             || !free_ast_node(&ptr->u_d.Operator.right))
             return false;
     }
+    else if (ptr->tag == Expression)
+        ptr = NULL; 
     else
         return false;
     free(*node);
@@ -87,12 +92,79 @@ bool free_ast_node(t_Ast    **node) {
     return true;
 }
 
-t_operators    asign_resolver(char mask) {
+void    constructor(t_Ast   *this)
+{
+    int i;
+    int prior;
+
+    if (this->tag != Expression)
+        return (void)"";
+    prior = 1;
+    while (prior < 3)
+    {
+        i = 0;
+        while (Data.sym[i].mask != NONE) {
+            if (Data.sym[i].priority == prior && !Data.sym[i].done
+                && Data.sym[i].pos < this->u_d.Expression.end
+                && Data.sym[i].pos > this->u_d.Expression.start)
+            {
+                to_operator(this, Data.sym[i]);
+                Data.sym[i].done = true;
+                return ;
+            }
+            i++;
+        }
+        prior++;
+    }
+    to_literal(this);
+}
+
+void    to_operator(t_Ast   *this, t_sym    op)
+{
+    int     l_start;
+    int     l_end;
+    int     r_start;
+    int     r_end;
+
+    if (this->tag != Expression)
+        return ;
+    l_start = this->u_d.Expression.start;
+    l_end = op.pos; // revisar posiciones
+    r_start = op.pos + 1;
+    r_end = this->u_d.Expression.end;
+    this->u_d.Operator.left = AST_NODE(Expression, l_start, l_end);
+    this->u_d.Operator.right = AST_NODE(Expression, r_start, r_end);
+    this->u_d.Operator.mask = op.mask;
+    this->u_d.Operator.pos = op.pos;
+    this->tag = Operator;
+    GET_RESOLVER(this->u_d.Operator);
+}
+
+void    to_literal(t_Ast    *this)
+{
+    char    *num_str;
+    int     len;
+
+    len = this->u_d.Expression.end - this->u_d.Expression.start;
+    num_str = malloc(len);
+    strlcpy(num_str, Data.cmd + this->u_d.Expression.start, len);
+    this->tag = Literal;
+    this->u_d.Literal.data = malloc(sizeof(int));
+    *(int *)this->u_d.Literal.data = atoi(num_str); 
+    this->u_d.Literal.freezer = free_num;
+    free(num_str);
+}
+
+t_operators    asign_op(char mask) {
     t_operators var;
     if (mask == '+')
         var = ADD;
     else if (mask == '*')
         var = MULT;
+    else if (mask == '-')
+        var = SUBS;
+    else if (mask == '/')
+        var = DIV;
     else
         var = NONE;
     return var;
@@ -126,35 +198,77 @@ void    *operate(t_Ast  **this) {
     return (data);
 }
 
-int main(void) {
-    t_Ast *tree_two = AST_NODE(Operator,
-                        AST_NODE(Literal, new_num(2), free_num),
-                        AST_NODE(Operator,
-                            AST_NODE(Operator, 
-                                AST_NODE(Literal, new_num(2), free_num),
-                                AST_NODE(Literal, new_num(3), free_num),
-                                '*',
-                                NULL),
-                                AST_NODE(Operator,
-                                AST_NODE(Operator, 
-                                    AST_NODE(Literal, new_num(2), free_num),
-                                    AST_NODE(Literal, new_num(3), free_num),
-                                    '*',
-                                    NULL),
-                                AST_NODE(Literal, new_num(4), free_num),
-                                '+',
-                                NULL),
-                            '+',
-                            NULL),
-                        '+', 
-                        NULL);
+t_sym   *get_syms(char  *str)
+{
+    int     i, s_c, symbols;
+    t_sym   *syms;
 
-    int *a = (int *)solve_ast(tree_two);
+    i = 0;
+    symbols = 0;
+    while (str[i])
+    {
+        if (asign_op(str[i]) != NONE)
+            symbols++;
+        i++;
+    }
+    i = 0;
+    syms = malloc(sizeof(t_sym) * (symbols + 1));
+    if (!syms)
+        return (NULL);
+    syms[symbols].mask = NONE;
+    s_c = 0;
+    while (str[i])
+    {
+        if (asign_op(str[i]))
+        {
+            syms[s_c].done = false;
+            syms[s_c].mask = asign_op(str[i]);
+            syms[s_c].pos = i;
+            syms[s_c].priority = 1;
+            if (syms[s_c].mask == MULT || syms[s_c].mask == DIV)
+                syms[s_c].priority = 2;
+            s_c++;
+        }
+        i++;
+    }
+    return (syms); 
+}
+
+int main(int argc, char *argv[]) {
+    // t_Ast *tree_two = AST_NODE(Operator,
+    //                     AST_NODE(Literal, new_num(2), free_num),
+    //                     AST_NODE(Operator,
+    //                         AST_NODE(Operator, 
+    //                             AST_NODE(Literal, new_num(2), free_num),
+    //                             AST_NODE(Literal, new_num(3), free_num),
+    //                             '*',
+    //                             NULL),
+    //                             AST_NODE(Operator,
+    //                             AST_NODE(Operator, 
+    //                                 AST_NODE(Literal, new_num(2), free_num),
+    //                                 AST_NODE(Literal, new_num(3), free_num),
+    //                                 '*',
+    //                                 NULL),
+    //                             AST_NODE(Literal, new_num(4), free_num),
+    //                             '+',
+    //                             NULL),
+    //                         '+',
+    //                         NULL),
+    //                     '+', 
+    //                     NULL);
+    if (argc != 2)
+    {
+        printf("Error. Usage: %s \"mathematical operation\"", argv[0]);
+        return (1);
+    }
+    Data.cmd = argv[1];
+    Data.sym = get_syms(Data.cmd);
+    Data.tree = AST_NODE(Expression, 0, strlen(Data.cmd) + 1);
+    int *a = (int *)solve_ast(Data.tree);
 
     printf("Value: %d\n", *a);
     printf("Cleaning\n");
     free(a); 
-    free_ast_node(&tree_two);
     atexit(leaks);
     return (0);
 }
