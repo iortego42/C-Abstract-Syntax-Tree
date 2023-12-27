@@ -102,6 +102,7 @@ t_data Data;
 
 
 void    constructor(t_Ast   *this);
+void    rev_constructor(t_Ast   *this);
 void    to_operator(t_Ast   *this, t_sym    op);
 void    to_literal(t_Ast    *this);
 t_Ast           *new_ast_node(t_Ast tree);

@@ -1,37 +1,4 @@
 #include "ast.h"
-/*
-OLD OPERATE
-void    *operate(t_O *this) {
-    void    *l_v = NULL;
-    void    *r_v = NULL;
-    void    *data;
-    if (this->left->tag == Literal)
-    {
-        l_v = this->left->u_d.Literal.data;
-    } 
-    else if (this->left->tag == Operator)
-    {
-        l_v = operate(&this->left->u_d.Operator);
-        free_ast_node(&this->left);
-    }
-    if (this->right->tag == Literal)
-    {
-        r_v = this->right->u_d.Literal.data;
-    }
-    else if (this->right->tag == Operator)
-    {
-        r_v = operate(&this->right->u_d.Operator); // must clean after resolve, resolve value got leak
-        free_ast_node(&this->right);
-    }
-    if (this->mask == '*')
-        this->Resolve = (void *(*)(void *, void *))mult;
-    else
-        this->Resolve = (void *(*)(void *, void *))add;
-    data = this->Resolve(l_v, r_v);
-    if (!this->left) free(l_v);
-    if (!this->right) free(r_v);
-    return data;
-}*/
 
 void    *solve_ast(t_Ast    *this) {
     if (this->tag == Literal)
@@ -64,7 +31,7 @@ t_Ast   *new_ast_node(t_Ast tree) {
         return (NULL);
     *root = tree;
     if (root->tag == Expression)
-        constructor(root);
+        rev_constructor(root);
     return (root);
 }
 
@@ -113,6 +80,35 @@ void    constructor(t_Ast   *this)
                 return ;
             }
             i++;
+        }
+        prior++;
+    }
+    to_literal(this);
+}
+
+void rev_constructor(t_Ast  *this)
+{
+    int i;
+    int prior;
+
+    if (this->tag != Expression)
+        return (void)"42Madrid";
+    prior = 1;
+    while (prior < 3)
+    {
+        i = 0;
+        while (Data.sym[i].mask != NONE)
+            i++;
+        while (i-- > 0)
+        {
+            if (Data.sym[i].priority == prior && !Data.sym[i].done
+                && Data.sym[i].pos < this->u_d.Expression.end
+                && Data.sym[i].pos > this->u_d.Expression.start)
+            {
+                to_operator(this, Data.sym[i]);
+                Data.sym[i].done = true;
+                return ;
+            }
         }
         prior++;
     }
@@ -178,9 +174,6 @@ void    *operate(t_Ast  **this) {
 
     if (this[0]->tag != Operator)
         return NULL; 
-    if (this[0]->u_d.Operator.Resolve == NULL)
-        GET_RESOLVER(this[0]->u_d.Operator);
-        // asign_resolver(this[0]->u_d.Operator.mask);
     if (this[0]->u_d.Operator.left->tag == Literal)
         l_v = this[0]->u_d.Operator.left->u_d.Literal.data;
     else 
@@ -235,27 +228,6 @@ t_sym   *get_syms(char  *str)
 }
 
 int main(int argc, char *argv[]) {
-    // t_Ast *tree_two = AST_NODE(Operator,
-    //                     AST_NODE(Literal, new_num(2), free_num),
-    //                     AST_NODE(Operator,
-    //                         AST_NODE(Operator, 
-    //                             AST_NODE(Literal, new_num(2), free_num),
-    //                             AST_NODE(Literal, new_num(3), free_num),
-    //                             '*',
-    //                             NULL),
-    //                             AST_NODE(Operator,
-    //                             AST_NODE(Operator, 
-    //                                 AST_NODE(Literal, new_num(2), free_num),
-    //                                 AST_NODE(Literal, new_num(3), free_num),
-    //                                 '*',
-    //                                 NULL),
-    //                             AST_NODE(Literal, new_num(4), free_num),
-    //                             '+',
-    //                             NULL),
-    //                         '+',
-    //                         NULL),
-    //                     '+', 
-    //                     NULL);
     if (argc != 2)
     {
         printf("Error. Usage: %s \"mathematical operation\"", argv[0]);
