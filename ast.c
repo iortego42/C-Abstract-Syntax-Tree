@@ -128,8 +128,8 @@ void    to_operator(t_Ast   *this, t_sym    op)
     l_end = op.pos; // revisar posiciones
     r_start = op.pos + 1;
     r_end = this->u_d.Expression.end;
-    this->u_d.Operator.left = AST_NODE(Expression, l_start, l_end);
-    this->u_d.Operator.right = AST_NODE(Expression, r_start, r_end);
+    this->u_d.Operator.left = NEW_AST(Expression, l_start, l_end);
+    this->u_d.Operator.right = NEW_AST(Expression, r_start, r_end);
     this->u_d.Operator.mask = op.mask;
     this->u_d.Operator.pos = op.pos;
     this->tag = Operator;
@@ -151,20 +151,6 @@ void    to_literal(t_Ast    *this)
     free(num_str);
 }
 
-t_operators    asign_op(char mask) {
-    t_operators var;
-    if (mask == '+')
-        var = ADD;
-    else if (mask == '*')
-        var = MULT;
-    else if (mask == '-')
-        var = SUBS;
-    else if (mask == '/')
-        var = DIV;
-    else
-        var = NONE;
-    return var;
-}
 
 
 void    *operate(t_Ast  **this) {
@@ -175,7 +161,7 @@ void    *operate(t_Ast  **this) {
     if (this[0]->tag != Operator)
         return NULL; 
     if (this[0]->u_d.Operator.left->tag == Literal)
-        l_v = this[0]->u_d.Operator.left->u_d.Literal.data;
+       l_v = this[0]->u_d.Operator.left->u_d.Literal.data;
     else 
         l_v = operate(&this[0]->u_d.Operator.left);
     if (this[0]->u_d.Operator.right->tag == Literal)
@@ -191,42 +177,6 @@ void    *operate(t_Ast  **this) {
     return (data);
 }
 
-t_sym   *get_syms(char  *str)
-{
-    int     i, s_c, symbols;
-    t_sym   *syms;
-
-    i = 0;
-    symbols = 0;
-    while (str[i])
-    {
-        if (asign_op(str[i]) != NONE)
-            symbols++;
-        i++;
-    }
-    i = 0;
-    syms = malloc(sizeof(t_sym) * (symbols + 1));
-    if (!syms)
-        return (NULL);
-    syms[symbols].mask = NONE;
-    s_c = 0;
-    while (str[i])
-    {
-        if (asign_op(str[i]))
-        {
-            syms[s_c].done = false;
-            syms[s_c].mask = asign_op(str[i]);
-            syms[s_c].pos = i;
-            syms[s_c].priority = 1;
-            if (syms[s_c].mask == MULT || syms[s_c].mask == DIV)
-                syms[s_c].priority = 2;
-            s_c++;
-        }
-        i++;
-    }
-    return (syms); 
-}
-
 int main(int argc, char *argv[]) {
     if (argc != 2)
     {
@@ -234,13 +184,13 @@ int main(int argc, char *argv[]) {
         return (1);
     }
     Data.cmd = argv[1];
-    Data.sym = get_syms(Data.cmd);
-    Data.tree = AST_NODE(Expression, 0, strlen(Data.cmd) + 1);
+    if (!lexer(Data.cmd))
+        return (2);
+    Data.tree = NEW_AST(Expression, 0, strlen(Data.cmd) + 1);
     int *a = (int *)solve_ast(Data.tree);
-
     printf("Value: %d\n", *a);
     printf("Cleaning\n");
     free(a); 
-    atexit(leaks);
+    // atexit(leaks);
     return (0);
 }
